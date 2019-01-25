@@ -5,6 +5,9 @@
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import (absolute_import, division, print_function)
+
+from ansible.parsing.dataloader import DataLoader
+
 __metaclass__ = type
 
 import glob
@@ -366,6 +369,15 @@ class PluginLoader:
 
     def get(self, name, *args, **kwargs):
         ''' instantiates a plugin of the given name using arguments '''
+
+        if ':' in name:
+            role, name = name.split(':')
+            # FIXME: Circular dependency
+            from ansible.playbook.role.definition import RoleDefinition
+            rd = RoleDefinition(loader=DataLoader())
+            rd.preprocess_data(role)
+            role_path = os.path.join(rd.get_role_path(), self.subdir)
+            self._extra_dirs.append(role_path)
 
         found_in_cache = True
         class_only = kwargs.pop('class_only', False)
